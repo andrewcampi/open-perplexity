@@ -40,7 +40,7 @@ The system provides detailed, well-formatted responses with markdown support and
 
 2. **Clone the Repository**
    ```bash
-   git clone https://github.com/yourusername/open-perplexity.git
+   git clone https://github.com/andrewcampi/open-perplexity.git
    cd open-perplexity
    ```
 
