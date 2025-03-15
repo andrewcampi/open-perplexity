@@ -72,10 +72,6 @@ The system provides detailed, well-formatted responses with markdown support and
 
 Open-Perplexity (Simplicity) is not affiliated with Perplexity. This is a non-commercial coding project created for educational purposes.
 
-## License
-
-This project is open source and available under the MIT License.
-
 ## Acknowledgments
 
 Built with 🤍 by [Andrew Campi](https://github.com/andrewcampi). 
