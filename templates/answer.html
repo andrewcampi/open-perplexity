@@ -1,0 +1,543 @@
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Simplicity - {{ query }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300&family=Raleway:wght@100&display=swap" rel="stylesheet"/>
+  <style>
+    * {
+      font-family: 'Inter', 'Raleway', ui-sans-serif, system-ui, sans-serif;
+      font-weight: 200;
+      letter-spacing: 0.02em;
+    }
+    h1, h2, h3, .font-semibold {
+      font-weight: 200;
+    }
+    button {
+      font-weight: 200;
+    }
+    input::placeholder {
+      font-weight: 100;
+    }
+
+    /* Loading animation */
+    .loading-spinner {
+      display: inline-block;
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Typing animation */
+    .typing-animation {
+      display: inline;
+      opacity: 0;
+      animation: fadeIn 0.05s forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .text-container {
+      color: inherit;
+      display: inline;
+    }
+
+    /* Loading container */
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 2rem;
+    }
+
+    /* Markdown Styles */
+    .markdown-content h1 { font-size: 2em; margin: 0.67em 0; }
+    .markdown-content h2 { font-size: 1.5em; margin: 0.75em 0; }
+    .markdown-content h3 { font-size: 1.17em; margin: 0.83em 0; }
+    .markdown-content h4 { margin: 1.12em 0; }
+    .markdown-content h5 { font-size: 0.83em; margin: 1.5em 0; }
+    .markdown-content h6 { font-size: 0.75em; margin: 1.67em 0; }
+    .markdown-content p { margin: 1em 0; }
+    .markdown-content ul, .markdown-content ol { padding-left: 2em; margin: 1em 0; }
+    .markdown-content ul { list-style-type: disc; }
+    .markdown-content ol { list-style-type: decimal; }
+    .markdown-content li { margin: 0.5em 0; }
+    .markdown-content code {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    .markdown-content pre {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 1em;
+      border-radius: 5px;
+      overflow-x: auto;
+      margin: 1em 0;
+    }
+    .markdown-content pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+    .markdown-content blockquote {
+      border-left: 4px solid rgba(255, 255, 255, 0.2);
+      padding-left: 1em;
+      margin: 1em 0;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .markdown-content a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+    .markdown-content a:hover {
+      text-decoration: underline;
+    }
+    .markdown-content table {
+      border-collapse: collapse;
+      margin: 1em 0;
+      width: 100%;
+    }
+    .markdown-content th, .markdown-content td {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.5em;
+      text-align: left;
+    }
+    .markdown-content img {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+  <script>
+    // Wait for DOM to be fully loaded before setting up event handlers
+    document.addEventListener('DOMContentLoaded', function() {
+      // Configure marked options
+      marked.setOptions({
+        breaks: true,
+        gfm: true,
+        sanitize: false
+      });
+
+      const isLoading = {% if is_loading %}true{% else %}false{% endif %};
+      if (isLoading) {
+        // Fetch the answer if we're in loading state
+        fetchAnswer();
+      } else {
+        // Render markdown content if we already have it
+        const markdownContent = `{{ answer | safe }}`;
+        document.getElementById('markdown-answer').innerHTML = marked.parse(markdownContent);
+      }
+
+      // Add click handlers to buttons
+      document.getElementById('thumbsUpBtn').onclick = () => toggleThumb('up');
+      document.getElementById('thumbsDownBtn').onclick = () => toggleThumb('down');
+      document.getElementById('copyButton').onclick = copyToClipboard;
+      document.getElementById('shareButton').onclick = shareUrl;
+    });
+
+    async function fetchAnswer() {
+      try {
+        const query = `{{ query | safe }}`;
+        const isDeepResearch = {% if deep_research %}true{% else %}false{% endif %};
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&deep_research=${isDeepResearch}`);
+        
+        if (isDeepResearch) {
+          // Set up event source for server-sent events
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+
+          while (true) {
+            const {value, done} = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = JSON.parse(line.slice(6));
+                
+                if (data.type === 'subqueries') {
+                  document.getElementById('progress-message').textContent = `Generated ${data.count} subqueries.`;
+                } 
+                else if (data.type === 'progress') {
+                  document.getElementById('progress-message').innerHTML = 
+                    `Researching subquery ${data.index}/${data.total}:<br>${data.subquery}`;
+                }
+                else if (data.type === 'complete') {
+                  // Hide loading spinner
+                  document.querySelector('.loading-container').style.display = 'none';
+                  
+                  // Show the answer container
+                  const answerContainer = document.getElementById('answer-container');
+                  answerContainer.style.display = 'block';
+                  
+                  // Update the answer and sources
+                  const parsedMarkdown = marked.parse(data.answer);
+                  const markdownAnswer = document.getElementById('markdown-answer');
+                  markdownAnswer.innerHTML = '';
+                  
+                  // Process the answer with typing animation
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = parsedMarkdown;
+                  
+                  for (const child of Array.from(tempDiv.childNodes)) {
+                    await processNode(child, markdownAnswer);
+                  }
+                  
+                  // Update sources
+                  updateSources(data.sources);
+                  document.getElementById('source-count').textContent = data.sources.length + ' sources';
+                }
+              }
+            }
+          }
+        } else {
+          // Handle regular search response
+          const data = await response.json();
+          
+          // Hide loading spinner
+          document.querySelector('.loading-container').style.display = 'none';
+          
+          // Show the answer container
+          const answerContainer = document.getElementById('answer-container');
+          answerContainer.style.display = 'block';
+          
+          // Get the parsed markdown
+          const parsedMarkdown = marked.parse(data.answer);
+          
+          // Create temporary div to hold the HTML content
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = parsedMarkdown;
+          
+          // Clear the markdown answer container
+          const markdownAnswer = document.getElementById('markdown-answer');
+          markdownAnswer.innerHTML = '';
+          
+          // Process each text node and apply typing animation
+          for (const child of Array.from(tempDiv.childNodes)) {
+            await processNode(child, markdownAnswer);
+          }
+          
+          // Update sources
+          updateSources(data.sources);
+          document.getElementById('source-count').textContent = data.num_sources + ' sources';
+        }
+      } catch (error) {
+        console.error('Error fetching answer:', error);
+        document.getElementById('markdown-answer').innerHTML = 'Error fetching answer. Please try again.';
+      }
+    }
+
+    // Function to process a DOM node and its children with typing animation
+    async function processNode(node, parentElement) {
+      const wordsPerSecond = 90;
+      const msPerWord = 1000 / wordsPerSecond;
+
+      if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '') {
+        // Create a single container for the entire text node
+        const container = document.createElement('span');
+        container.className = 'text-container';
+        parentElement.appendChild(container);
+
+        // Split text into words while preserving whitespace
+        const words = node.textContent.split(/(\s+)/);
+        
+        for (let i = 0; i < words.length; i++) {
+          const word = words[i];
+          if (word.trim() !== '') {
+            const span = document.createElement('span');
+            span.textContent = word;
+            span.style.opacity = '0';
+            container.appendChild(span);
+            
+            // Trigger animation
+            span.classList.add('typing-animation');
+            
+            // Wait before processing next word
+            await new Promise(resolve => setTimeout(resolve, msPerWord));
+          } else {
+            // For whitespace, add it without animation
+            container.appendChild(document.createTextNode(word));
+          }
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        // Create the element
+        const newElement = document.createElement(node.tagName);
+        
+        // Copy all attributes
+        Array.from(node.attributes).forEach(attr => {
+          newElement.setAttribute(attr.name, attr.value);
+        });
+        
+        // Add it to the parent
+        parentElement.appendChild(newElement);
+        
+        // Process all child nodes
+        for (const child of Array.from(node.childNodes)) {
+          await processNode(child, newElement);
+        }
+      }
+    }
+
+    function updateSources(sources) {
+      const sourcesContainer = document.getElementById('sources-container');
+      if (sources && sources.length > 0) {
+        const sourcesList = sources.map(source => 
+          `<a href="${source.url}" target="_blank" class="block text-blue-400 hover:text-blue-300">
+            ${source.title}
+          </a>`
+        ).join('');
+        
+        sourcesContainer.innerHTML = `
+          <h3 class="text-lg mb-4">Sources:</h3>
+          <div class="space-y-2">
+            ${sourcesList}
+          </div>
+        `;
+      }
+    }
+
+    function toggleThumb(type) {
+      const upBtn = document.getElementById('thumbsUpBtn');
+      const downBtn = document.getElementById('thumbsDownBtn');
+      
+      if (type === 'up') {
+        if (upBtn.classList.contains('text-white')) {
+          upBtn.classList.remove('text-white');
+          upBtn.classList.add('text-gray-400');
+        } else {
+          upBtn.classList.remove('text-gray-400');
+          upBtn.classList.add('text-white');
+          downBtn.classList.remove('text-white');
+          downBtn.classList.add('text-gray-400');
+        }
+      } else {
+        if (downBtn.classList.contains('text-white')) {
+          downBtn.classList.remove('text-white');
+          downBtn.classList.add('text-gray-400');
+        } else {
+          downBtn.classList.remove('text-gray-400');
+          downBtn.classList.add('text-white');
+          upBtn.classList.remove('text-white');
+          upBtn.classList.add('text-gray-400');
+        }
+      }
+    }
+
+    function copyToClipboard() {
+      const markdownContent = `{{ answer }}`;
+      const textarea = document.createElement('textarea');
+      textarea.value = markdownContent;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        const copyMessage = document.getElementById('copyMessage');
+        copyMessage.classList.remove('hidden');
+        setTimeout(() => {
+          copyMessage.classList.add('hidden');
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy text: ', err);
+      }
+      document.body.removeChild(textarea);
+    }
+
+    function exportToMarkdown() {
+      try {
+        const query = JSON.parse('{{ query | tojson | safe }}');
+        const answer = JSON.parse('{{ answer | tojson | safe }}');
+        const sources = JSON.parse('{{ sources | tojson | safe }}');
+        
+        let markdownContent = `# Input\n${query}\n\n# Output\n${answer}\n\n# Sources\n`;
+        sources.forEach(source => {
+          markdownContent += `- [${source.title}](${source.url})\n`;
+        });
+        
+        const blob = new Blob([markdownContent], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'export.txt';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (err) {
+        console.error('Failed to export:', err);
+      }
+    }
+
+    function shareUrl() {
+      const url = window.location.href;
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        const shareMessage = document.getElementById('shareMessage');
+        shareMessage.classList.remove('hidden');
+        setTimeout(() => {
+          shareMessage.classList.add('hidden');
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy URL: ', err);
+      }
+      document.body.removeChild(textarea);
+    }
+  </script>
+ </head>
+ <body class="bg-[#191a1a] text-white font-sans">
+  <div class="flex h-screen">
+   <!-- Sidebar -->
+   <div class="w-64 bg-[#202222] p-4 flex flex-col justify-between">
+    <div>
+     <div class="flex items-center mb-6">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-8 w-8 mr-2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+      </svg>
+      <a href="/" class="text-2xl font-semibold">simplicity</a>
+     </div>
+     <a href="/">
+       <button class="bg-[#202222] text-white py-2 px-4 rounded mb-4 flex items-center w-full">
+        <i class="fas fa-plus mr-2"></i>
+        New Thread
+       </button>
+     </a>
+    </div>
+    <div>
+     <div class="flex flex-col mb-4">
+      <p class="text-xs text-gray-400">
+       Open-Perplexity (Simplicity) is in no way affiliated with Perplexity. This is a non-commerical coding project.
+      </p>
+      <p class="text-xs text-gray-400">
+        Built with 🤍 by <a href="https://github.com/andrewcampi" class="text-blue-500">Andrew Campi</a>.
+      </p>
+     </div>
+    </div>
+   </div>
+
+   <!-- Main Content -->
+   <div class="flex-1 overflow-auto">
+    <div class="p-8">
+      <!-- Search Box -->
+      <form action="/search" method="get" class="mb-8">
+        <div class="bg-[#202222] p-4 rounded-3xl flex items-center border border-white/20">
+          <input name="q" class="bg-transparent flex-1 text-white outline-none" placeholder="Ask anything..." type="text" value="{{ query }}"/>
+          <button type="button" class="text-gray-400 hover:text-white ml-2 px-2 py-1 text-sm border border-gray-600 rounded-2xl flex items-center gap-1">
+            Deep Research
+            <i class="fas fa-flask"></i>
+          </button>
+          <button type="submit" class="text-gray-400 hover:text-white ml-2 px-4 py-2 border border-gray-600 rounded-2xl flex items-center gap-2">
+            Ask
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </form>
+
+      <!-- Answer Section -->
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+          </svg>
+          <div class="flex items-center gap-2">
+            <span>{% if deep_research %}Deep Research{% else %}Basic Search{% endif %}</span>
+            <span class="text-gray-400" id="source-count">{{ num_sources }} sources</span>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        {% if is_loading %}
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+          <p class="text-gray-400" id="loading-message">
+            {% if deep_research %}Performing deep research...{% else %}Searching...{% endif %}
+          </p>
+          {% if deep_research %}
+          <p class="text-gray-400 text-sm" id="progress-message">Breaking down query into subqueries...</p>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Simplicity Logo and Answer -->
+        <div class="mb-6" id="answer-container" style="display: {% if is_loading %}none{% else %}block{% endif %}">
+          <div class="flex items-center gap-2 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+            </svg>
+            <span>Simplicity</span>
+          </div>
+          <div id="markdown-answer" class="text-white markdown-content"></div>
+        </div>
+
+        <!-- Sources -->
+        <div id="sources-container" class="mt-6">
+          {% if sources %}
+          <h3 class="text-lg mb-4">Sources:</h3>
+          <div class="space-y-2">
+            {% for source in sources %}
+            <a href="{{ source.url }}" target="_blank" class="block text-blue-400 hover:text-blue-300">
+              {{ source.title }}
+            </a>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mt-6" style="display: {% if is_loading %}none{% else %}block{% endif %}">
+          <div class="flex items-center gap-4">
+            <button class="text-gray-400 hover:text-white" id="shareButton">
+              <i class="fas fa-share"></i> Share
+              <span id="shareMessage" class="hidden ml-2 text-sm">Link copied to clipboard!</span>
+            </button>
+            <button class="text-gray-400 hover:text-white" onclick="exportToMarkdown()">
+              <i class="fas fa-file-export"></i> Export
+            </button>
+            <button class="text-gray-400 hover:text-white" onclick="window.location.reload()">
+              <i class="fas fa-sync"></i> Rewrite
+            </button>
+            <div class="flex-1"></div>
+            <button id="thumbsUpBtn" class="text-gray-400 hover:text-gray-200">
+              <i class="fas fa-thumbs-up"></i>
+            </button>
+            <button id="thumbsDownBtn" class="text-gray-400 hover:text-gray-200">
+              <i class="fas fa-thumbs-down"></i>
+            </button>
+            <button class="text-gray-400 hover:text-white" id="copyButton">
+              <i class="fas fa-copy"></i>
+              <span id="copyMessage" class="hidden ml-2 text-sm">Output copied to clipboard!</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+   </div>
+  </div>
+ </body>
+</html> 

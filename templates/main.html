@@ -1,0 +1,146 @@
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   Simplicity
+  </title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300&family=Raleway:wght@100&display=swap" rel="stylesheet"/>
+  <style>
+    * {
+      font-family: 'Inter', 'Raleway', ui-sans-serif, system-ui, sans-serif;
+      font-weight: 200;
+      letter-spacing: 0.02em;
+    }
+    h1, h2, h3, .font-semibold {
+      font-weight: 200;
+    }
+    button {
+      font-weight: 200;
+    }
+    input::placeholder {
+      font-weight: 100;
+    }
+  </style>
+  <script>
+    function submitSearch(query) {
+      // Set the input value
+      document.querySelector('input[name="q"]').value = query;
+      // Submit the form
+      document.querySelector('form[action="/search"]').submit();
+    }
+
+    // Add Deep Research toggle functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const toggleBtn = document.getElementById('deepResearchToggle');
+      const deepResearchInput = document.getElementById('deepResearchInput');
+      let isDeepResearch = false;
+
+      toggleBtn.addEventListener('click', function() {
+        isDeepResearch = !isDeepResearch;
+        deepResearchInput.value = isDeepResearch;
+        
+        if (isDeepResearch) {
+          toggleBtn.classList.remove('text-gray-400', 'border-gray-600');
+          toggleBtn.classList.add('text-white', 'border-white', 'bg-white/10');
+        } else {
+          toggleBtn.classList.add('text-gray-400', 'border-gray-600');
+          toggleBtn.classList.remove('text-white', 'border-white', 'bg-white/10');
+        }
+      });
+    });
+  </script>
+ </head>
+ <body class="bg-[#191a1a] text-white font-sans">
+  <div class="flex h-screen">
+   <!-- Sidebar -->
+   <div class="w-64 bg-[#202222] p-4 flex flex-col justify-between">
+    <div>
+     <div class="flex items-center mb-6">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-8 w-8 mr-2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+      </svg>
+      <span class="text-2xl font-semibold">
+        simplicity
+      </span>
+     </div>
+     <a href="/">
+       <button class="bg-[#202222] text-white py-2 px-4 rounded mb-4 flex items-center w-full">
+        <i class="fas fa-plus mr-2">
+        </i>
+        New Thread
+       </button>
+     </a>
+    </div>
+    <div>
+     <div class="flex flex-col mb-4">
+      <h3 class="text-small text-gray-400 mb-2">Privacy Policy</h3>
+      <p class="text-xs text-gray-400 mb-4">
+        Simplicity has a zero logging policy. Requests are sent to OpenAI. By using Simplicity, you agree to OpenAI's API Privacy Policy.
+      </p>
+      <h3 class="text-small text-gray-400 mb-2">Disclaimer</h3>
+      <p class="text-xs text-gray-400 mb-4">
+        Open-Perplexity (Simplicity) is in no way affiliated with Perplexity. This is a non-commerical coding project.
+      </p>
+      <h3 class="text-small text-gray-400 mb-2">Author</h3>
+      <p class="text-xs text-gray-400">
+        Built with 🤍 by <a href="https://github.com/andrewcampi" class="text-blue-500">Andrew Campi</a>.
+      </p>
+     </div>
+    </div>
+   </div>
+   <!-- Main Content -->
+   <div class="flex-1 flex flex-col items-center justify-center p-8">
+    <h1 class="text-3xl font-semibold mb-6">
+     What do you want to know?
+    </h1>
+    <div class="w-full max-w-2xl">
+     <form action="/search" method="get">
+      <div class="bg-[#202222] p-4 rounded-3xl flex items-center mb-4 border border-white/20" id="searchBox">
+       <input name="q" class="bg-transparent flex-1 text-white outline-none" placeholder="Ask anything..." type="text"/>
+       <button type="button" id="deepResearchToggle" class="text-gray-400 hover:text-white ml-2 px-2 py-1 text-sm border border-gray-600 rounded-2xl flex items-center gap-1">
+         Deep Research
+         <i class="fas fa-flask"></i>
+       </button>
+       <input type="hidden" name="deep_research" id="deepResearchInput" value="false"/>
+       <button type="submit" class="text-gray-400 hover:text-white ml-2 px-4 py-2 border border-gray-600 rounded-2xl flex items-center gap-2">
+         Ask
+        <i class="fas fa-arrow-right"></i>
+       </button>
+      </div>
+     </form>
+     <div class="bg-[#202222] p-4 rounded-lg flex items-center mb-4">
+      <div class="flex-1">
+       <p class="text-sm text-gray-400">
+        Open-Perplexity (Simplicity) is my speedrun of building a clone of Perplexity. It aims to provide the same quality and experience of Perplexity, while being (mostly) open-source and using the new OpenAI tool-use APIs.
+       </p>
+      </div>
+     </div>
+     <div class="flex gap-4 w-full">
+       <div class="flex-1 bg-[#202222] p-4 rounded-lg flex items-center border border-transparent hover:border-white/20 cursor-pointer transition-all duration-200" onclick="submitSearch('When is the next MLB game?')">
+         <img src="static/images/baseball.webp" class="w-12 h-12 rounded-xl mr-4 object-cover" alt="Baseball"/>
+         <p class="text-sm text-gray-400">
+           When is the next MLB game?
+         </p>
+       </div>
+       <div class="flex-1 bg-[#202222] p-4 rounded-lg flex items-center border border-transparent hover:border-white/20 cursor-pointer transition-all duration-200" onclick="submitSearch('What\'s the latest space research?')">
+         <img src="static/images/spaceman.webp" class="w-12 h-12 rounded-xl mr-4 object-cover" alt="Space"/>
+         <p class="text-sm text-gray-400">
+           What's the latest space research?
+         </p>
+       </div>
+       <div class="flex-1 bg-[#202222] p-4 rounded-lg flex items-center border border-transparent hover:border-white/20 cursor-pointer transition-all duration-200" onclick="submitSearch('Any news about NYC today?')">
+         <img src="static/images/nyc.webp" class="w-12 h-12 rounded-xl mr-4 object-cover" alt="NYC"/>
+         <p class="text-sm text-gray-400">
+           Any news about NYC today?
+         </p>
+       </div>
+     </div>
+    </div>
+   </div>
+  </div>
+ </body>
+</html>
